@@ -7,6 +7,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/jaegertracing/jaeger v1.55.0
+	github.com/linkedin/goavro/v2 v2.9.8
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/coreinternal v0.96.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/internal/kafka v0.96.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/batchpersignal v0.96.0

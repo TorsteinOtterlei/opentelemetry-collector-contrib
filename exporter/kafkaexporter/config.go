@@ -57,6 +57,14 @@ type Config struct {
 
 	// Authentication defines used authentication mechanism.
 	Authentication kafka.Authentication `mapstructure:"auth"`
+
+	// AVRO encoder config when "encoding: avro"
+	Avro Avro `mapstructure:"avro"`
+}
+
+type Avro struct {
+	// AVRO schema used to decode messages
+	Schema string `mapstructure:"schema"`
 }
 
 // Metadata defines configuration for retrieving metadata from the broker.

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/IBM/sarama"
 	"go.opentelemetry.io/collector/component"
@@ -244,6 +245,13 @@ func newLogsExporter(config Config, set exporter.CreateSettings, marshalers map[
 	marshaler := marshalers[config.Encoding]
 	if marshaler == nil {
 		return nil, errUnrecognizedEncoding
+	}
+	if avroMarshaler, ok := marshaler.(*avroLogsMarshaler); ok {
+		var err error
+		marshaler, err = avroMarshaler.WithSchema(strings.NewReader(config.Avro.Schema))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &kafkaLogsProducer{
