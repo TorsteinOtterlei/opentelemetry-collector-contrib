@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
 )
@@ -30,6 +31,26 @@ func newExtension(config *Config) (*avroLogExtension, error) {
 	}
 
 	return &avroLogExtension{deserializer: deserializer}, nil
+}
+
+
+func (e *avroLogExtension) MarshalLogs(logs plog.Logs) ([]byte, error) {
+	logRecord := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().At(0).Body()
+
+	var raw map[string]any
+	switch logRecord.Type() {
+	case pcommon.ValueTypeMap:
+		raw = logRecord.Map().AsRaw()
+	default:
+		return nil, fmt.Errorf("Marshal: Expected 'Map' found '%v'", logRecord.Type().String())
+	}
+
+	buf, err := e.deserializer.Serialize(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
 
 func (e *avroLogExtension) UnmarshalLogs(buf []byte) (plog.Logs, error) {

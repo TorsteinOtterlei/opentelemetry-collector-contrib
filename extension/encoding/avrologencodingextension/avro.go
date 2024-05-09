@@ -11,6 +11,7 @@ import (
 
 type avroDeserializer interface {
 	Deserialize([]byte) (map[string]any, error)
+	Serialize(map[string]any) ([]byte, error)
 }
 
 type avroStaticSchemaDeserializer struct {
@@ -36,3 +37,13 @@ func (d *avroStaticSchemaDeserializer) Deserialize(data []byte) (map[string]any,
 
 	return native.(map[string]any), nil
 }
+
+func (d *avroStaticSchemaDeserializer) Serialize(data map[string]any) ([]byte, error) {
+	binary, err := d.codec.BinaryFromNative(nil, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize avro record: %w", err)
+	}
+
+	return binary, nil
+}
+
