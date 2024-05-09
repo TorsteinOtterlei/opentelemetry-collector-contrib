@@ -50,7 +50,7 @@ func TestNewAvroLogsMarshaler(t *testing.T) {
 		t.Errorf("Did not expect an error, got %q", err.Error())
 	}
 
-	avroData, err := avroEncoder.Serialize(jsonMap)
+	avroData, err := avroEncoder.Serialize(jsonMap, 0)
 	if err != nil {
 		t.Fatalf("Did not expect an error, got %q", err.Error())
 	}

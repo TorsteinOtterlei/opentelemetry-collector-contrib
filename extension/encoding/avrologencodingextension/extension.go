@@ -21,6 +21,7 @@ var (
 )
 
 type avroLogExtension struct {
+	config      *Config
 	avroEncoder avroLogCodec
 }
 
@@ -30,7 +31,7 @@ func newExtension(config *Config) (*avroLogExtension, error) {
 		return nil, err
 	}
 
-	return &avroLogExtension{avroEncoder: avroEncoder}, nil
+	return &avroLogExtension{config: config, avroEncoder: avroEncoder}, nil
 }
 
 
@@ -45,7 +46,7 @@ func (e *avroLogExtension) MarshalLogs(logs plog.Logs) ([]byte, error) {
 		return nil, fmt.Errorf("Marshal: Expected 'Map' found '%v'", logRecord.Type().String())
 	}
 
-	buf, err := e.avroEncoder.Serialize(raw)
+	buf, err := e.avroEncoder.Serialize(raw, e.config.SchemaID)
 	if err != nil {
 		return nil, err
 	}

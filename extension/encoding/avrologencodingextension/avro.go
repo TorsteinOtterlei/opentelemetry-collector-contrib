@@ -7,11 +7,12 @@ import (
 	"fmt"
 
 	"github.com/linkedin/goavro/v2"
+	"encoding/binary"
 )
 
 type avroLogCodec interface {
 	Deserialize([]byte) (map[string]any, error)
-	Serialize(map[string]any) ([]byte, error)
+	Serialize(map[string]any, uint32) ([]byte, error)
 }
 
 type avroStaticSchemaLogCodec struct {
@@ -38,12 +39,16 @@ func (d *avroStaticSchemaLogCodec) Deserialize(data []byte) (map[string]any, err
 	return native.(map[string]any), nil
 }
 
-func (d *avroStaticSchemaLogCodec) Serialize(data map[string]any) ([]byte, error) {
-	binary, err := d.codec.BinaryFromNative(nil, data)
+func (d *avroStaticSchemaLogCodec) Serialize(data map[string]any, schemaID uint32) ([]byte, error) {
+	logMsgBinary, err := d.codec.BinaryFromNative(nil, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize avro record: %w", err)
 	}
 
-	return binary, nil
-}
+	if schemaID != 0 {
+	    schemaIDPrefix := binary.BigEndian.AppendUint32([]byte{0x0}, schemaID)
+	    logMsgBinary = append(schemaIDPrefix, logMsgBinary...)
+	}
 
+	return logMsgBinary, nil
+}
