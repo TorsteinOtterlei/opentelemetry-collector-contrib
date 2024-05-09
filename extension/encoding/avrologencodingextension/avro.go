@@ -9,27 +9,27 @@ import (
 	"github.com/linkedin/goavro/v2"
 )
 
-type avroDeserializer interface {
+type avroLogCodec interface {
 	Deserialize([]byte) (map[string]any, error)
 	Serialize(map[string]any) ([]byte, error)
 }
 
-type avroStaticSchemaDeserializer struct {
+type avroStaticSchemaLogCodec struct {
 	codec *goavro.Codec
 }
 
-func newAVROStaticSchemaDeserializer(schema string) (avroDeserializer, error) {
+func newAVROStaticSchemaLogCodec(schema string) (avroLogCodec, error) {
 	codec, err := goavro.NewCodec(schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create avro codec: %w", err)
 	}
 
-	return &avroStaticSchemaDeserializer{
+	return &avroStaticSchemaLogCodec{
 		codec: codec,
 	}, nil
 }
 
-func (d *avroStaticSchemaDeserializer) Deserialize(data []byte) (map[string]any, error) {
+func (d *avroStaticSchemaLogCodec) Deserialize(data []byte) (map[string]any, error) {
 	native, _, err := d.codec.NativeFromBinary(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize avro record: %w", err)
@@ -38,7 +38,7 @@ func (d *avroStaticSchemaDeserializer) Deserialize(data []byte) (map[string]any,
 	return native.(map[string]any), nil
 }
 
-func (d *avroStaticSchemaDeserializer) Serialize(data map[string]any) ([]byte, error) {
+func (d *avroStaticSchemaLogCodec) Serialize(data map[string]any) ([]byte, error) {
 	binary, err := d.codec.BinaryFromNative(nil, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize avro record: %w", err)

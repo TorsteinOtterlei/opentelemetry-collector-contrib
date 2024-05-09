@@ -11,26 +11,26 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
-	"go.opentelemetry.io/collector/pdata/pcommon"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding"
 )
 
 var (
+	_ encoding.LogsMarshalerExtension   = (*avroLogExtension)(nil)
 	_ encoding.LogsUnmarshalerExtension = (*avroLogExtension)(nil)
 )
 
 type avroLogExtension struct {
-	deserializer avroDeserializer
+	avroEncoder avroLogCodec
 }
 
 func newExtension(config *Config) (*avroLogExtension, error) {
-	deserializer, err := newAVROStaticSchemaDeserializer(config.Schema)
+	avroEncoder, err := newAVROStaticSchemaLogCodec(config.Schema)
 	if err != nil {
 		return nil, err
 	}
 
-	return &avroLogExtension{deserializer: deserializer}, nil
+	return &avroLogExtension{avroEncoder: avroEncoder}, nil
 }
 
 
@@ -45,7 +45,7 @@ func (e *avroLogExtension) MarshalLogs(logs plog.Logs) ([]byte, error) {
 		return nil, fmt.Errorf("Marshal: Expected 'Map' found '%v'", logRecord.Type().String())
 	}
 
-	buf, err := e.deserializer.Serialize(raw)
+	buf, err := e.avroEncoder.Serialize(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (e *avroLogExtension) MarshalLogs(logs plog.Logs) ([]byte, error) {
 func (e *avroLogExtension) UnmarshalLogs(buf []byte) (plog.Logs, error) {
 	p := plog.NewLogs()
 
-	avroLog, err := e.deserializer.Deserialize(buf)
+	avroLog, err := e.avroEncoder.Deserialize(buf)
 	if err != nil {
 		return p, fmt.Errorf("failed to deserialize avro log: %w", err)
 	}
