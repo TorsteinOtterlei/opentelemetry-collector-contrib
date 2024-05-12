@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"encoding/binary"
 )
 
 func TestNewAvroLogsUnmarshaler(t *testing.T) {
@@ -56,7 +57,7 @@ func TestNewAvroLogsMarshaler(t *testing.T) {
 	}
 
 	logMap, err := avroEncoder.Deserialize(avroData)
-		if err != nil {
+	if err != nil {
 		t.Fatalf("Did not expect an error, got %q", err.Error())
 	}
 
@@ -71,4 +72,31 @@ func TestNewAvroLogsMarshaler(t *testing.T) {
 	}
 
 	assert.Equal(t, []string{"prop1", "prop2"}, propsStr)
+}
+
+func TestSchemaID(t *testing.T) {
+	schema, jsonMap := createMapTestData(t)
+
+	avroEncoder, err := newAVROStaticSchemaLogCodec(schema)
+	if err != nil {
+		t.Errorf("Did not expect an error, got %q", err.Error())
+	}
+
+	schemaID := uint32(4294967295) // This number is 32 bits of all 1s
+
+	avroData, err := avroEncoder.Serialize(jsonMap, schemaID)
+	if err != nil {
+		t.Fatalf("Did not expect an error, got %q", err.Error())
+	}
+
+	binarySchemaID := []byte{0,0,0,0}
+	binary.BigEndian.PutUint32(binarySchemaID, schemaID)
+
+	assert.Equal(t, avroData[0], uint8(0x0))
+	assert.Equal(t, avroData[1:5], binarySchemaID)
+
+	_, err = avroEncoder.Deserialize(avroData[5:])
+	if err != nil {
+		t.Fatalf("Did not expect an error, got %q", err.Error())
+	}
 }
