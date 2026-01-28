@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"crypto/tls"
 
 	quotaclientset "github.com/openshift/client-go/quota/clientset/versioned"
 	api_v1 "k8s.io/api/core/v1"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"go.opentelemetry.io/collector/config/configtls"
 )
 
 func init() {
@@ -34,9 +36,6 @@ func init() {
 // AuthType describes the type of authentication to use for the K8s API
 type AuthType string
 
-// TODO: Add option for TLS once
-// https://go.opentelemetry.io/collector/issues/933
-// is addressed.
 const (
 	// AuthTypeNone means no auth is required
 	AuthTypeNone AuthType = "none"
@@ -66,6 +65,9 @@ type APIConfig struct {
 
 	// When using auth_type `kubeConfig`, override the current context.
 	Context string `mapstructure:"context"`
+
+	// TLS client configuration.
+	configtls.Config `mapstructure:",squash"`
 }
 
 // Validate validates the K8s API config
@@ -115,6 +117,33 @@ func CreateRestConfig(apiConf APIConfig) (*rest.Config, error) {
 		authConf, err = rest.InClusterConfig()
 		if err != nil {
 			return nil, err
+		}
+	case AuthTypeTLS:
+		var rootCAs []byte
+		if apiConf.CAFile != "" {
+			rootCAs, err = os.ReadFile(apiConf.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA file %q: %w", apiConf.CAFile, err)
+			}
+		}
+		certData, err := os.ReadFile(apiConf.CertFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read cert file %q: %w", apiConf.CertFile, err)
+		}
+		keyData, err := os.ReadFile(apiConf.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read key file %q: %w", apiConf.KeyFile, err)
+		}
+		if _, err := tls.X509KeyPair(certData, keyData); err != nil {
+			return nil, fmt.Errorf("failed to load TLS cert and key: %w", err)
+		}
+		authConf = &rest.Config{
+			Host: k8sHost,
+			TLSClientConfig: rest.TLSClientConfig{
+				CAData:   rootCAs,
+				CertData: certData,
+				KeyData:  keyData,
+			},
 		}
 	}
 
