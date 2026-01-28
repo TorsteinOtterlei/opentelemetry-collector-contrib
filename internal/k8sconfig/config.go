@@ -68,6 +68,7 @@ type APIConfig struct {
 
 	// TLS client configuration.
 	configtls.Config `mapstructure:",squash"`
+	InsecureSkipVerify bool `mapstructure:"insecure_skip_verify"`
 }
 
 // Validate validates the K8s API config
@@ -143,6 +144,7 @@ func CreateRestConfig(apiConf APIConfig) (*rest.Config, error) {
 				CAData:   rootCAs,
 				CertData: certData,
 				KeyData:  keyData,
+				Insecure: apiConf.InsecureSkipVerify,
 			},
 		}
 	}
